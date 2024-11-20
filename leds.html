@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proyecto Arduino Unificado</title>
+    <style>
+        /* Estilos globales */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #fff;
+            text-align: center;
+        }
+        h1 {
+            margin: 20px 0;
+            font-size: 2.5em;
+            background: -webkit-linear-gradient(#76c7c0, #4caf50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        h2 {
+            margin: 20px 0;
+            font-size: 1.8em;
+        }
+        button {
+            font-size: 1em;
+            padding: 10px 20px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #4caf50;
+            color: white;
+            transition: background 0.3s, transform 0.2s;
+        }
+        button:hover {
+            background: #45a049;
+            transform: scale(1.1);
+        }
+        #bar {
+            width: 0;
+            height: 30px;
+            background: #76c7c0;
+            border-radius: 5px;
+            transition: width 0.3s;
+        }
+        .container {
+            margin: 20px auto;
+            padding: 20px;
+            max-width: 600px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        .slider-container input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 80%;
+            height: 10px;
+            border-radius: 5px;
+            background: #4caf50;
+            outline: none;
+            transition: background 0.3s;
+        }
+        .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+        }
+        .slider-container input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Proyecto Arduino Unificado</h1>
+
+    <div class="container">
+        <!-- Medidor de distancia -->
+        <h2>Medidor de Distancia</h2>
+        <div style="width: 100%; background: #333; border-radius: 5px; overflow: hidden;">
+            <div id="bar"></div>
+        </div>
+        <p>Distancia: <span id="distance">--</span> cm</p>
+    </div>
+
+    <div class="container">
+        <!-- Semáforo interactivo -->
+        <h2>Control del Semáforo</h2>
+        <button onclick="sendCommand('R')">Rojo</button>
+        <button onclick="sendCommand('Y')">Amarillo</button>
+        <button onclick="sendCommand('G')">Verde</button>
+    </div>
+
+    <div class="container">
+        <!-- Control de servomotor -->
+        <h2>Control de Servomotor</h2>
+        <div class="slider-container">
+            <input type="range" min="0" max="180" id="servoRange" oninput="updateServo(this.value)">
+        </div>
+        <p>Ángulo: <span id="servoAngle">90</span>°</p>
+    </div>
+
+    <div class="container">
+        <!-- Conexión al Arduino -->
+        <button onclick="connectSerial()" style="background: #76c7c0;">Conectar Arduino</button>
+    </div>
+
+    <script>
+        let port, reader, writer;
+
+        async function connectSerial() {
+            try {
+                port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 9600 });
+                reader = port.readable.getReader();
+                writer = port.writable.getWriter();
+                readSerial();
+                alert("Conexión exitosa con Arduino.");
+            } catch (error) {
+                alert("Error al conectar con Arduino: " + error.message);
+            }
+        }
+
+        async function readSerial() {
+            const bar = document.getElementById('bar');
+            const distanceDisplay = document.getElementById('distance');
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                const text = new TextDecoder().decode(value);
+
+                if (text.startsWith("D:")) {
+                    const distance = parseInt(text.substring(2));
+                    if (!isNaN(distance)) {
+                        distanceDisplay.textContent = distance;
+                        bar.style.width = Math.min(distance, 100) + "%";
+                    }
+                }
+            }
+        }
+
+        async function sendCommand(command) {
+            if (!writer) {
+                alert("Conecta el Arduino primero.");
+                return;
+            }
+            const data = new TextEncoder().encode(command + '\n');
+            await writer.write(data);
+        }
+
+        async function updateServo(angle) {
+            document.getElementById("servoAngle").textContent = angle;
+            sendCommand(`S:${angle}`);
+        }
+    </script>
+</body>
+</html>
+
+</body>
+</html>
